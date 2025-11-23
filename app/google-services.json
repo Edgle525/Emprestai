@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1085539520590",
+    "project_id": "emprestai-91833",
+    "storage_bucket": "emprestai-91833.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085539520590:android:373324f9d5f2a0f123731f",
+        "android_client_info": {
+          "package_name": "br.edu.fatecgru.empresta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkqutbUdMViKBfO8rqrn_CGdwNJP5UlXY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

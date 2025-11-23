@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/navigation_ferramentas">
+
+    <fragment
+        android:id="@+id/navigation_ferramentas"
+        android:name="br.edu.fatecgru.empresta.ui.ferramentas.FerramentasFragment"
+        android:label="fragment_ferramentas"
+        tools:layout="@layout/fragment_ferramentas" />
+
+    <fragment
+        android:id="@id/navigation_emprestimos"
+        android:name="br.edu.fatecgru.empresta.ui.emprestimos.EmprestimosFragment"
+        android:label="fragment_emprestimos"
+        tools:layout="@layout/fragment_emprestimos" />
+
+    <fragment
+        android:id="@+id/navigation_perfil"
+        android:name="br.edu.fatecgru.empresta.ui.perfil.PerfilFragment"
+        android:label="fragment_perfil"
+        tools:layout="@layout/fragment_perfil" />
+</navigation>
