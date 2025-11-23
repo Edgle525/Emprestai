@@ -10,6 +10,7 @@ constraintlayout = "2.2.1"
 navigation = "2.7.7"
 firebase-bom = "33.1.2"
 google-services = "4.4.2"
+glide = "4.16.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -25,8 +26,9 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth"}
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore"}
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage"}
+glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
+googleGmsServices = { id = "com.google.gms.google-services", version.ref = "google-services" }
 

@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.google.services)
+    alias(libs.plugins.googleGmsServices)
 }
 
 android {
@@ -48,6 +48,9 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
+
+    // Image Loading
+    implementation(libs.glide)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
