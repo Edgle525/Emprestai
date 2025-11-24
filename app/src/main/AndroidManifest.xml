@@ -26,6 +26,10 @@
         <activity android:name=".AddToolActivity" />
         <activity android:name=".MyToolsActivity" />
         <activity android:name=".EditProfileActivity" />
+        <activity android:name=".ToolDetailActivity" />
+        <activity android:name=".LoanRequestsActivity" />
+        <activity android:name=".ChatActivity" />
+        <activity android:name=".SearchUserActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Emprestaí</string>
     <string name="default_web_client_id" translatable="false">1085539520590-t04d7j05h19lt1402pchk6mo7u0egqsq.apps.googleusercontent.com</string>
+    <string-array name="time_units">
+        <item>Dias</item>
+        <item>Horas</item>
+    </string-array>
 </resources>
