@@ -19,7 +19,7 @@ public class ChatMessage {
         this.text = text;
     }
 
-    // Getters e Setters
+    // Getters and Setters
     public String getMessageId() { return messageId; }
     public void setMessageId(String messageId) { this.messageId = messageId; }
 

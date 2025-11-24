@@ -65,10 +65,8 @@ public class SearchUserActivity extends AppCompatActivity {
             return;
         }
 
-        String lowerCaseQuery = query.toLowerCase();
-
         db.collection("users")
-                .orderBy("name") // Firestore is case-sensitive, this might not be perfect
+                .orderBy("name")
                 .startAt(query)
                 .endAt(query + "\uf8ff")
                 .get()
@@ -76,15 +74,9 @@ public class SearchUserActivity extends AppCompatActivity {
                     userList.clear();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         if (!document.getId().equals(currentUserId)) {
-                            User user = new User(
-                                document.getId(),
-                                document.getString("name"),
-                                document.getString("photoUrl")
-                            );
-                            // Adicionar apenas se o nome realmente contiver a query (ignorando caso)
-                            if (document.getString("name").toLowerCase().contains(lowerCaseQuery)) {
-                                userList.add(user);
-                            }
+                            User user = document.toObject(User.class);
+                            user.setUid(document.getId());
+                            userList.add(user);
                         }
                     }
                     adapter.notifyDataSetChanged();
