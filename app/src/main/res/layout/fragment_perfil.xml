@@ -41,6 +41,40 @@
         android:textSize="16sp"
         tools:text="email@example.com" />
 
+    <LinearLayout
+        android:id="@+id/incomplete_profile_warning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Seu perfil está incompleto!"
+            android:textColor="@android:color/holo_red_dark"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/complete_profile_button"
+            style="?attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Completar Cadastro" />
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/edit_profile_button"
+        style="?attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Editar Informações" />
+
     <Space
         android:layout_width="match_parent"
         android:layout_height="0dp"

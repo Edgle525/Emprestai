@@ -12,7 +12,12 @@
           "package_name": "br.edu.fatecgru.empresta"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1085539520590-t04d7j05h19lt1402pchk6mo7u0egqsq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBkqutbUdMViKBfO8rqrn_CGdwNJP5UlXY"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085539520590-t04d7j05h19lt1402pchk6mo7u0egqsq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

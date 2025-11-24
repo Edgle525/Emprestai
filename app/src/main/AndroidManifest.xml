@@ -25,6 +25,7 @@
         <activity android:name=".RegisterActivity" />
         <activity android:name=".AddToolActivity" />
         <activity android:name=".MyToolsActivity" />
+        <activity android:name=".EditProfileActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

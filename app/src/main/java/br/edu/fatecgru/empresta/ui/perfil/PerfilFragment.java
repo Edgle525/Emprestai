@@ -18,6 +18,9 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -30,6 +33,7 @@ import br.edu.fatecgru.empresta.MyToolsActivity;
 import br.edu.fatecgru.empresta.R;
 import br.edu.fatecgru.empresta.LoginActivity;
 import br.edu.fatecgru.empresta.databinding.FragmentPerfilBinding;
+import br.edu.fatecgru.empresta.EditProfileActivity;
 
 public class PerfilFragment extends Fragment {
 
@@ -37,6 +41,7 @@ public class PerfilFragment extends Fragment {
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
     private StorageReference storageReference;
+    private GoogleSignInClient mGoogleSignInClient;
 
     private final ActivityResultLauncher<Intent> galleryLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -64,14 +69,29 @@ public class PerfilFragment extends Fragment {
         db = FirebaseFirestore.getInstance();
         storageReference = FirebaseStorage.getInstance().getReference();
 
-        loadUserProfile();
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+        mGoogleSignInClient = GoogleSignIn.getClient(requireActivity(), gso);
 
+        setupClickListeners();
+    }
+
+    private void setupClickListeners() {
+        binding.editProfileButton.setOnClickListener(v -> navigateToEditProfile());
+        binding.completeProfileButton.setOnClickListener(v -> navigateToEditProfile());
         binding.logoutButton.setOnClickListener(v -> logoutUser());
         binding.manageToolsButton.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), MyToolsActivity.class);
             startActivity(intent);
         });
         binding.profileImageCard.setOnClickListener(v -> openGallery());
+    }
+
+    private void navigateToEditProfile() {
+        Intent intent = new Intent(getActivity(), EditProfileActivity.class);
+        startActivity(intent);
     }
 
     private void openGallery() {
@@ -112,7 +132,7 @@ public class PerfilFragment extends Fragment {
 
     private void loadUserProfile() {
         FirebaseUser user = mAuth.getCurrentUser();
-        if (user == null) return;
+        if (user == null || binding == null) return;
 
         DocumentReference docRef = db.collection("users").document(user.getUid());
         docRef.get().addOnCompleteListener(task -> {
@@ -130,6 +150,16 @@ public class PerfilFragment extends Fragment {
                     } else {
                         displayPlaceholder();
                     }
+
+                    // Check if profile is complete
+                    String cpf = document.getString("cpf");
+                    String phone = document.getString("phone");
+                    boolean isProfileComplete = cpf != null && !cpf.isEmpty() && phone != null && !phone.isEmpty();
+
+                    binding.manageToolsButton.setEnabled(isProfileComplete);
+                    binding.incompleteProfileWarning.setVisibility(isProfileComplete ? View.GONE : View.VISIBLE);
+                    binding.editProfileButton.setVisibility(isProfileComplete ? View.VISIBLE : View.GONE);
+
                 } else {
                     Toast.makeText(getContext(), "Dados do usuário não encontrados.", Toast.LENGTH_SHORT).show();
                 }
@@ -150,17 +180,25 @@ public class PerfilFragment extends Fragment {
     private void displayPlaceholder() {
         binding.profileImage.setImageResource(android.R.drawable.ic_menu_camera);
         binding.profileImage.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        binding.profileImage.setPadding(28,28,28,28);
+        binding.profileImage.setPadding(28, 28, 28, 28);
     }
 
     private void logoutUser() {
         mAuth.signOut();
-        Intent intent = new Intent(getActivity(), LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        if (getActivity() != null) {
-            getActivity().finish();
-        }
+        mGoogleSignInClient.signOut().addOnCompleteListener(requireActivity(), task -> {
+            Intent intent = new Intent(getActivity(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            if (getActivity() != null) {
+                getActivity().finish();
+            }
+        });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadUserProfile(); // Refresh user data when returning to the fragment
     }
 
     @Override

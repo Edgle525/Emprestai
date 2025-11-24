@@ -2,6 +2,7 @@ package br.edu.fatecgru.empresta;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -30,6 +31,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -51,13 +53,13 @@ public class AddToolActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private StorageReference storageRef;
 
-    private final ArrayList<String> imageUrls = new ArrayList<>(); // URLs existentes
-    private final ArrayList<Uri> newImageUris = new ArrayList<>(); // Novas imagens (URIs)
-    private final ArrayList<String> imagesToDelete = new ArrayList<>(); // URLs a serem deletadas no salvamento
+    private final ArrayList<String> imageUrls = new ArrayList<>();
+    private final ArrayList<Uri> newImageUris = new ArrayList<>();
+    private final ArrayList<String> imagesToDelete = new ArrayList<>();
     private ImageAdapter imageAdapter;
     private Uri photoURI;
     private String editingToolId = null;
-    private int replacingImagePosition = -1; // Posição da imagem a ser substituída
+    private int replacingImagePosition = -1;
 
     private final String[] categories = {"Elétrica", "Marcenaria", "Jardinagem", "Hidráulica", "Mecânica", "Outros"};
     private final boolean[] selectedCategories;
@@ -126,6 +128,23 @@ public class AddToolActivity extends AppCompatActivity {
         binding.toolCategorySelector.setOnClickListener(v -> showCategorySelectionDialog());
         binding.addImageButton.setOnClickListener(v -> showImageSourceDialog());
         binding.saveToolButton.setOnClickListener(v -> saveTool());
+    }
+
+    private byte[] compressImage(Uri uri) throws IOException {
+        Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), uri);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        // Resize and compress
+        int originalWidth = bitmap.getWidth();
+        int originalHeight = bitmap.getHeight();
+        float aspectRatio = (float) originalWidth / originalHeight;
+        int targetWidth = 1024;
+        int targetHeight = (int) (targetWidth / aspectRatio);
+
+        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true);
+        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+
+        return baos.toByteArray();
     }
 
     private void loadToolData(String toolId) {
@@ -229,6 +248,12 @@ public class AddToolActivity extends AppCompatActivity {
     }
 
     private void saveTool() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "Usuário não autenticado. Faça o login novamente.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         String name = binding.toolName.getText().toString().trim();
         String brand = binding.toolBrand.getText().toString().trim();
         String description = binding.toolDescription.getText().toString().trim();
@@ -242,12 +267,12 @@ public class AddToolActivity extends AppCompatActivity {
         Toast.makeText(this, "Salvando ferramenta...", Toast.LENGTH_SHORT).show();
 
         String toolId = (editingToolId != null) ? editingToolId : db.collection("tools").document().getId();
-        deleteOldImagesAndSaveTool(toolId);
+        deleteOldImagesAndSaveTool(toolId, currentUser.getUid());
     }
 
-    private void deleteOldImagesAndSaveTool(String toolId) {
+    private void deleteOldImagesAndSaveTool(String toolId, String ownerId) {
         if (imagesToDelete.isEmpty()) {
-            uploadNewImagesAndSaveTool(toolId);
+            uploadNewImagesAndSaveTool(toolId, ownerId);
             return;
         }
 
@@ -259,49 +284,52 @@ public class AddToolActivity extends AppCompatActivity {
 
         Tasks.whenAllComplete(deleteTasks).addOnCompleteListener(task -> {
             imagesToDelete.clear();
-            uploadNewImagesAndSaveTool(toolId);
+            uploadNewImagesAndSaveTool(toolId, ownerId);
         });
     }
 
-    private void uploadNewImagesAndSaveTool(String toolId) {
+    private void uploadNewImagesAndSaveTool(String toolId, String ownerId) {
         final List<String> finalImageUrls = new ArrayList<>(imageUrls);
         if (newImageUris.isEmpty()) {
-            saveDataToFirestore(toolId, finalImageUrls);
+            saveDataToFirestore(toolId, finalImageUrls, ownerId);
             return;
         }
 
         List<Task<Uri>> uploadTasks = new ArrayList<>();
         for (Uri uri : newImageUris) {
-            StorageReference fileRef = storageRef.child("tool_images/" + toolId + "/" + UUID.randomUUID().toString());
-            uploadTasks.add(fileRef.putFile(uri).continueWithTask(task -> {
-                if (!task.isSuccessful()) {
-                    throw task.getException();
-                }
-                return fileRef.getDownloadUrl();
-            }));
+            try {
+                byte[] compressedImage = compressImage(uri);
+                StorageReference fileRef = storageRef.child("tool_images/" + toolId + "/" + UUID.randomUUID().toString() + ".jpg");
+                uploadTasks.add(fileRef.putBytes(compressedImage).continueWithTask(task -> {
+                    if (!task.isSuccessful()) {
+                        if (task.getException() != null) {
+                            throw task.getException();
+                        }
+                    }
+                    return fileRef.getDownloadUrl();
+                }));
+            } catch (IOException e) {
+                Toast.makeText(this, "Falha ao comprimir imagem: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                binding.saveToolButton.setEnabled(true);
+                return; // Stop the process if one image fails to compress
+            }
         }
 
         Tasks.whenAllSuccess(uploadTasks).addOnSuccessListener(urls -> {
             for (Object url : urls) {
                 finalImageUrls.add(url.toString());
             }
-            saveDataToFirestore(toolId, finalImageUrls);
+            saveDataToFirestore(toolId, finalImageUrls, ownerId);
         }).addOnFailureListener(e -> {
             binding.saveToolButton.setEnabled(true);
             Toast.makeText(AddToolActivity.this, "Falha no upload das imagens.", Toast.LENGTH_SHORT).show();
         });
     }
 
-    private void saveDataToFirestore(String toolId, List<String> finalImageUrls) {
+    private void saveDataToFirestore(String toolId, List<String> finalImageUrls, String ownerId) {
         String name = binding.toolName.getText().toString().trim();
         String brand = binding.toolBrand.getText().toString().trim();
         String description = binding.toolDescription.getText().toString().trim();
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "Usuário não autenticado.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String userId = currentUser.getUid();
 
         Map<String, Object> tool = new HashMap<>();
         tool.put("name", name);
@@ -309,7 +337,7 @@ public class AddToolActivity extends AppCompatActivity {
         tool.put("categories", selectedCategoriesList);
         tool.put("description", description);
         tool.put("imageUrls", finalImageUrls);
-        tool.put("ownerId", userId);
+        tool.put("ownerId", ownerId);
         tool.put("available", true);
 
         db.collection("tools").document(toolId).set(tool)
@@ -386,7 +414,12 @@ public class AddToolActivity extends AppCompatActivity {
             } else if (item instanceof Uri) {
                 Glide.with(AddToolActivity.this).load((Uri) item).into(holder.binding.toolImageItem);
             }
-            holder.itemView.setOnClickListener(v -> handleImageClick(holder.getAdapterPosition()));
+            holder.itemView.setOnClickListener(v -> {
+                int bindingAdapterPosition = holder.getBindingAdapterPosition();
+                if (bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                    handleImageClick(bindingAdapterPosition);
+                }
+            });
         }
 
         @Override
