@@ -37,14 +37,21 @@ public class SearchUserAdapter extends RecyclerView.Adapter<SearchUserAdapter.Us
 
         holder.binding.userNameSearch.setText(user.getName());
 
-        if (user.getPhotoUrl() != null && !user.getPhotoUrl().isEmpty()) {
-            Glide.with(context).load(user.getPhotoUrl()).into(holder.binding.userPhotoSearch);
+        String photoUrl = user.getPhotoUrl();
+
+        if (photoUrl != null && !photoUrl.isEmpty()) {
+            Glide.with(context)
+                 .load(photoUrl)
+                 .placeholder(R.mipmap.ic_launcher_round) // Imagem de carregamento
+                 .error(R.mipmap.ic_launcher_round) // Imagem em caso de erro
+                 .into(holder.binding.userPhotoSearch);
+        } else {
+            holder.binding.userPhotoSearch.setImageResource(R.mipmap.ic_launcher_round); // Imagem padrão
         }
 
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, ChatActivity.class);
             intent.putExtra(ChatActivity.EXTRA_OTHER_USER_ID, user.getUid());
-            intent.putExtra(ChatActivity.EXTRA_OTHER_USER_NAME, user.getName());
             context.startActivity(intent);
         });
     }

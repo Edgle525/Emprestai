@@ -4,6 +4,7 @@ import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
 public class Conversation {
+    private String chatId;
     private String otherUserId;
     private String otherUserName;
     private String otherUserPhotoUrl;
@@ -14,6 +15,9 @@ public class Conversation {
     public Conversation() {}
 
     // Getters and Setters
+    public String getChatId() { return chatId; }
+    public void setChatId(String chatId) { this.chatId = chatId; }
+
     public String getOtherUserId() { return otherUserId; }
     public void setOtherUserId(String otherUserId) { this.otherUserId = otherUserId; }
 

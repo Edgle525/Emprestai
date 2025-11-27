@@ -89,14 +89,18 @@ public class ToolDetailActivity extends AppCompatActivity {
                     }
 
                     if (photoUrl != null && !photoUrl.isEmpty()) {
-                        Glide.with(this).load(photoUrl).into(binding.ownerPhotoDetail);
+                        Glide.with(this)
+                             .load(photoUrl)
+                             .placeholder(R.mipmap.ic_launcher_round) // Imagem de carregamento
+                             .error(R.mipmap.ic_launcher_round) // Imagem em caso de erro
+                             .into(binding.ownerPhotoDetail);
+                    } else {
+                        binding.ownerPhotoDetail.setImageResource(R.mipmap.ic_launcher_round); // Imagem padrão
                     }
 
                     binding.chatButtonDetail.setOnClickListener(v -> {
                         Intent intent = new Intent(this, ChatActivity.class);
                         intent.putExtra(ChatActivity.EXTRA_OTHER_USER_ID, ownerId);
-                        intent.putExtra(ChatActivity.EXTRA_OTHER_USER_NAME, name);
-                        intent.putExtra(ChatActivity.EXTRA_OTHER_USER_PHOTO_URL, photoUrl); // Corrigido
                         startActivity(intent);
                     });
                 }

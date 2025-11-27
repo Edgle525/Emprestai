@@ -119,7 +119,7 @@ public class PerfilFragment extends Fragment {
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
             db.collection("users").document(user.getUid())
-                    .update("profileImageUrl", imageUrl)
+                    .update("photoUrl", imageUrl)
                     .addOnSuccessListener(aVoid -> {
                         Toast.makeText(getContext(), "Foto de perfil atualizada!", Toast.LENGTH_SHORT).show();
                         if (binding != null) {
@@ -144,7 +144,7 @@ public class PerfilFragment extends Fragment {
                     binding.profileName.setText(document.getString("name"));
                     binding.profileEmail.setText(document.getString("email"));
 
-                    String imageUrl = document.getString("profileImageUrl");
+                    String imageUrl = document.getString("photoUrl");
                     if (imageUrl != null && !imageUrl.isEmpty()) {
                         displayImage(imageUrl);
                     } else {

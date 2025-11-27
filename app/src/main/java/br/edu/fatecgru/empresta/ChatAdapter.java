@@ -25,7 +25,9 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
 
     private final List<ChatMessage> chatMessages;
     private final String currentUserId;
+    private final String otherUserName;
     private final String otherUserPhotoUrl;
+    private final String currentUserPhotoUrl;
     private final OnMessageInteractionListener listener;
     private final Context context;
 
@@ -34,11 +36,13 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
         void onDeleteMessage(ChatMessage message);
     }
 
-    public ChatAdapter(Context context, List<ChatMessage> chatMessages, String otherUserPhotoUrl, OnMessageInteractionListener listener) {
+    public ChatAdapter(Context context, List<ChatMessage> chatMessages, String otherUserName, String otherUserPhotoUrl, String currentUserPhotoUrl, OnMessageInteractionListener listener) {
         this.context = context;
         this.chatMessages = chatMessages;
         this.currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        this.otherUserName = otherUserName;
         this.otherUserPhotoUrl = otherUserPhotoUrl;
+        this.currentUserPhotoUrl = currentUserPhotoUrl;
         this.listener = listener;
     }
 
@@ -71,10 +75,9 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
             holder.messageText.setText("Mensagem apagada");
             holder.messageText.setTypeface(null, Typeface.ITALIC);
             holder.itemView.setLongClickable(false);
-            if (holder.senderPhoto != null) {
-                holder.senderPhoto.setVisibility(View.INVISIBLE);
-            }
-            // Ocultar indicadores de edição em mensagens apagadas
+            if (holder.senderPhoto != null) holder.senderPhoto.setVisibility(View.INVISIBLE);
+            if (holder.senderName != null) holder.senderName.setVisibility(View.INVISIBLE);
+
             TextView editedIndicatorSent = holder.itemView.findViewById(R.id.edited_indicator);
             if (editedIndicatorSent != null) editedIndicatorSent.setVisibility(View.GONE);
             TextView editedIndicatorReceived = holder.itemView.findViewById(R.id.edited_indicator_received);
@@ -83,16 +86,21 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
         } else {
             holder.messageText.setText(message.getText());
             holder.messageText.setTypeface(null, Typeface.NORMAL);
+            holder.itemView.setLongClickable(true);
+            if (holder.senderPhoto != null) holder.senderPhoto.setVisibility(View.VISIBLE);
+            if (holder.senderName != null) holder.senderName.setVisibility(View.VISIBLE);
 
             if (getItemViewType(position) == VIEW_TYPE_SENT) {
+                holder.senderName.setText("Você");
+                if (currentUserPhotoUrl != null && !currentUserPhotoUrl.isEmpty()) {
+                    Glide.with(context).load(currentUserPhotoUrl).into(holder.senderPhoto);
+                }
+
                 holder.itemView.setOnLongClickListener(v -> {
                     new AlertDialog.Builder(v.getContext())
                         .setItems(new CharSequence[]{"Editar", "Apagar"}, (dialog, which) -> {
-                            if (which == 0) { // Editar
-                                listener.onEditMessage(message);
-                            } else { // Apagar
-                                listener.onDeleteMessage(message);
-                            }
+                            if (which == 0) listener.onEditMessage(message);
+                            else listener.onDeleteMessage(message);
                         }).show();
                     return true;
                 });
@@ -101,11 +109,13 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
                 if (editedIndicator != null) {
                     editedIndicator.setVisibility(message.isEdited() ? View.VISIBLE : View.GONE);
                 }
-            } else {
-                if (holder.senderPhoto != null && otherUserPhotoUrl != null && !otherUserPhotoUrl.isEmpty()) {
-                    holder.senderPhoto.setVisibility(View.VISIBLE);
+
+            } else { // RECEIVED
+                holder.senderName.setText(otherUserName);
+                if (otherUserPhotoUrl != null && !otherUserPhotoUrl.isEmpty()) {
                     Glide.with(context).load(otherUserPhotoUrl).into(holder.senderPhoto);
                 }
+
                 TextView editedIndicator = holder.itemView.findViewById(R.id.edited_indicator_received);
                 if (editedIndicator != null) {
                     editedIndicator.setVisibility(message.isEdited() ? View.VISIBLE : View.GONE);
@@ -122,11 +132,13 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
     static class MessageViewHolder extends RecyclerView.ViewHolder {
         TextView messageText;
         CircleImageView senderPhoto;
+        TextView senderName;
 
         public MessageViewHolder(@NonNull View itemView) {
             super(itemView);
             messageText = itemView.findViewById(R.id.message_text);
             senderPhoto = itemView.findViewById(R.id.sender_photo);
+            senderName = itemView.findViewById(R.id.sender_name);
         }
     }
 }

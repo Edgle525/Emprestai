@@ -122,18 +122,19 @@ public class LoginActivity extends AppCompatActivity {
         Map<String, Object> user = new HashMap<>();
         user.put("name", firebaseUser.getDisplayName());
         user.put("email", firebaseUser.getEmail());
+        if (firebaseUser.getPhotoUrl() != null) {
+            user.put("photoUrl", firebaseUser.getPhotoUrl().toString());
+        } else {
+            user.put("photoUrl", null);
+        }
         user.put("rating", 0.0);
 
         Log.d(TAG, "Saving user data to Firestore for UID: " + firebaseUser.getUid());
         FirebaseFirestore.getInstance().collection("users").document(firebaseUser.getUid())
                 .set(user)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Firestore save successful. Redirecting to EditProfileActivity.");
-                    Toast.makeText(this, "Complete seu cadastro para continuar", Toast.LENGTH_LONG).show();
-                    Intent intent = new Intent(LoginActivity.this, EditProfileActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
+                    Log.d(TAG, "Firestore save successful. Updating UI.");
+                    updateUI(firebaseUser);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error saving user data to Firestore.", e);

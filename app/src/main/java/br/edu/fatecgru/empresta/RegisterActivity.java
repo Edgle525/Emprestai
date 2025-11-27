@@ -89,6 +89,7 @@ public class RegisterActivity extends AppCompatActivity {
         user.put("email", email);
         user.put("cpf", cpf);
         user.put("phone", phone);
+        user.put("photoUrl", null);
         user.put("rating", 0.0);
 
         db.collection("users").document(uid).set(user)

@@ -44,18 +44,23 @@ public class LoanRequestsAdapter extends RecyclerView.Adapter<LoanRequestsAdapte
         db.collection("users").document(loan.getBorrowerId()).get().addOnSuccessListener(userDoc -> {
             if (userDoc.exists()) {
                 String borrowerName = userDoc.getString("name");
-                String photoUrl = userDoc.getString("photoUrl");
                 holder.binding.borrowerName.setText(borrowerName);
-                
+
+                String photoUrl = userDoc.getString("photoUrl");
+
                 if (photoUrl != null && !photoUrl.isEmpty()) {
-                    Glide.with(context).load(photoUrl).into(holder.binding.borrowerPhoto);
+                    Glide.with(context)
+                         .load(photoUrl)
+                         .placeholder(R.mipmap.ic_launcher_round) // Imagem de carregamento
+                         .error(R.mipmap.ic_launcher_round) // Imagem em caso de erro
+                         .into(holder.binding.borrowerPhoto);
+                } else {
+                    holder.binding.borrowerPhoto.setImageResource(R.mipmap.ic_launcher_round); // Imagem padrão
                 }
 
                 holder.binding.chatButtonRequest.setOnClickListener(v -> {
                     Intent intent = new Intent(context, ChatActivity.class);
                     intent.putExtra(ChatActivity.EXTRA_OTHER_USER_ID, loan.getBorrowerId());
-                    intent.putExtra(ChatActivity.EXTRA_OTHER_USER_NAME, borrowerName);
-                    intent.putExtra(ChatActivity.EXTRA_OTHER_USER_PHOTO_URL, photoUrl); // Corrigido
                     context.startActivity(intent);
                 });
             }
@@ -68,13 +73,13 @@ public class LoanRequestsAdapter extends RecyclerView.Adapter<LoanRequestsAdapte
 
     private void updateLoanStatus(Loan loan, String newStatus, int position) {
         db.collection("loans").document(loan.getId()).update("status", newStatus)
-            .addOnSuccessListener(aVoid -> {
-                Toast.makeText(context, "Solicitação " + newStatus.toLowerCase(), Toast.LENGTH_SHORT).show();
-                loanRequests.remove(position);
-                notifyItemRemoved(position);
-                notifyItemRangeChanged(position, loanRequests.size());
-            })
-            .addOnFailureListener(e -> Toast.makeText(context, "Erro ao atualizar solicitação", Toast.LENGTH_SHORT).show());
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(context, "Solicitação " + newStatus.toLowerCase(), Toast.LENGTH_SHORT).show();
+                    loanRequests.remove(position);
+                    notifyItemRemoved(position);
+                    notifyItemRangeChanged(position, loanRequests.size());
+                })
+                .addOnFailureListener(e -> Toast.makeText(context, "Erro ao atualizar solicitação", Toast.LENGTH_SHORT).show());
     }
 
     @Override

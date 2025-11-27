@@ -2,7 +2,9 @@ package br.edu.fatecgru.empresta;
 
 import android.content.Context;
 import android.content.Intent;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -38,16 +40,26 @@ public class ConversationsAdapter extends RecyclerView.Adapter<ConversationsAdap
         holder.binding.userName.setText(conversation.getOtherUserName());
         holder.binding.lastMessage.setText(conversation.getLastMessage());
 
-        if (conversation.getOtherUserPhotoUrl() != null && !conversation.getOtherUserPhotoUrl().isEmpty()) {
-            Glide.with(context).load(conversation.getOtherUserPhotoUrl()).into(holder.binding.userPhoto);
+        String photoUrl = conversation.getOtherUserPhotoUrl();
+        if (photoUrl != null && !photoUrl.isEmpty()) {
+            Glide.with(context)
+                 .load(photoUrl)
+                 .placeholder(R.mipmap.ic_launcher_round) // Imagem de carregamento
+                 .error(R.mipmap.ic_launcher_round) // Imagem em caso de erro
+                 .into(holder.binding.userPhoto);
+        } else {
+            holder.binding.userPhoto.setImageResource(R.mipmap.ic_launcher_round); // Imagem padrão
         }
 
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, ChatActivity.class);
             intent.putExtra(ChatActivity.EXTRA_OTHER_USER_ID, conversation.getOtherUserId());
-            intent.putExtra(ChatActivity.EXTRA_OTHER_USER_NAME, conversation.getOtherUserName());
-            intent.putExtra(ChatActivity.EXTRA_OTHER_USER_PHOTO_URL, conversation.getOtherUserPhotoUrl()); // Corrigido
             context.startActivity(intent);
+        });
+
+        holder.itemView.setOnLongClickListener(v -> {
+            v.setTag(holder.getAdapterPosition());
+            return false;
         });
     }
 
@@ -56,12 +68,25 @@ public class ConversationsAdapter extends RecyclerView.Adapter<ConversationsAdap
         return conversationList.size();
     }
 
-    static class ConversationViewHolder extends RecyclerView.ViewHolder {
+    public Conversation getConversation(int position) {
+        if (position >= 0 && position < conversationList.size()) {
+            return conversationList.get(position);
+        }
+        return null;
+    }
+
+    static class ConversationViewHolder extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener {
         private final ItemConversationBinding binding;
 
         public ConversationViewHolder(ItemConversationBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
+            itemView.setOnCreateContextMenuListener(this);
+        }
+
+        @Override
+        public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+            menu.add(this.getAdapterPosition(), R.id.delete_conversation, 0, "Excluir conversa");
         }
     }
 }

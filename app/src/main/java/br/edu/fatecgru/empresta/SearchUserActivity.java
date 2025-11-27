@@ -67,8 +67,8 @@ public class SearchUserActivity extends AppCompatActivity {
 
         db.collection("users")
                 .orderBy("name")
-                .startAt(query)
-                .endAt(query + "\uf8ff")
+                .startAt(query.toUpperCase())
+                .endAt(query.toLowerCase() + "\uf8ff")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     userList.clear();
