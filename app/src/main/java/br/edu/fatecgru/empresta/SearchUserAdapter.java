@@ -61,7 +61,7 @@ public class SearchUserAdapter extends RecyclerView.Adapter<SearchUserAdapter.Us
         return userList.size();
     }
 
-    static class UserViewHolder extends RecyclerView.ViewHolder {
+    public static class UserViewHolder extends RecyclerView.ViewHolder {
         private final ItemSearchUserBinding binding;
 
         public UserViewHolder(ItemSearchUserBinding binding) {

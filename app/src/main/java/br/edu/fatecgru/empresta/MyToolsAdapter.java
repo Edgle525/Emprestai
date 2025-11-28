@@ -99,7 +99,6 @@ public class MyToolsAdapter extends RecyclerView.Adapter<MyToolsAdapter.ToolView
                     Toast.makeText(context, "Ferramenta excluída", Toast.LENGTH_SHORT).show();
                     toolList.remove(position);
                     notifyItemRemoved(position);
-                    notifyItemRangeChanged(position, toolList.size());
                 })
                 .addOnFailureListener(e -> Toast.makeText(context, "Erro ao excluir", Toast.LENGTH_SHORT).show());
     }

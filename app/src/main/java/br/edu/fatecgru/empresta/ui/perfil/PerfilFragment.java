@@ -29,7 +29,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
-import br.edu.fatecgru.empresta.MyToolsActivity;
 import br.edu.fatecgru.empresta.R;
 import br.edu.fatecgru.empresta.LoginActivity;
 import br.edu.fatecgru.empresta.databinding.FragmentPerfilBinding;
@@ -82,10 +81,6 @@ public class PerfilFragment extends Fragment {
         binding.editProfileButton.setOnClickListener(v -> navigateToEditProfile());
         binding.completeProfileButton.setOnClickListener(v -> navigateToEditProfile());
         binding.logoutButton.setOnClickListener(v -> logoutUser());
-        binding.manageToolsButton.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), MyToolsActivity.class);
-            startActivity(intent);
-        });
         binding.profileImageCard.setOnClickListener(v -> openGallery());
     }
 
@@ -156,7 +151,6 @@ public class PerfilFragment extends Fragment {
                     String phone = document.getString("phone");
                     boolean isProfileComplete = cpf != null && !cpf.isEmpty() && phone != null && !phone.isEmpty();
 
-                    binding.manageToolsButton.setEnabled(isProfileComplete);
                     binding.incompleteProfileWarning.setVisibility(isProfileComplete ? View.GONE : View.VISIBLE);
                     binding.editProfileButton.setVisibility(isProfileComplete ? View.VISIBLE : View.GONE);
 

@@ -7,9 +7,9 @@
 
     <fragment
         android:id="@id/navigation_home"
-        android:name="br.edu.fatecgru.empresta.ToolsFragment"
+        android:name="br.edu.fatecgru.empresta.HomeFragment"
         android:label="Início"
-        tools:layout="@layout/fragment_tools" />
+        tools:layout="@layout/fragment_home" />
 
     <fragment
         android:id="@id/navigation_conversations"

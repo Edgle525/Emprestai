@@ -167,12 +167,8 @@ public class ToolDetailActivity extends AppCompatActivity {
         @NonNull
         @Override
         public ImageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            ImageView imageView = new ImageView(parent.getContext());
-            imageView.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            return new ImageViewHolder(imageView);
+            View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_tool_image_detail, parent, false);
+            return new ImageViewHolder(itemView);
         }
 
         @Override

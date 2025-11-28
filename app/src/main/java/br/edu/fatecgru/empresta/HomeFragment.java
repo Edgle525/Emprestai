@@ -1,6 +1,5 @@
-package br.edu.fatecgru.empresta.ui.ferramentas;
+package br.edu.fatecgru.empresta;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,9 +11,10 @@ import android.widget.SearchView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -22,16 +22,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import br.edu.fatecgru.empresta.AddToolActivity;
-import br.edu.fatecgru.empresta.MyToolsAdapter;
-import br.edu.fatecgru.empresta.R;
-import br.edu.fatecgru.empresta.Tool;
-import br.edu.fatecgru.empresta.databinding.FragmentFerramentasBinding;
+import br.edu.fatecgru.empresta.databinding.FragmentHomeBinding;
 
-public class FerramentasFragment extends Fragment {
+public class HomeFragment extends Fragment {
 
-    private FragmentFerramentasBinding binding;
-    private MyToolsAdapter adapter;
+    private FragmentHomeBinding binding;
+    private ToolsAdapter adapter;
     private final List<Tool> fullToolList = new ArrayList<>();
     private final List<Tool> filteredToolList = new ArrayList<>();
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -43,7 +39,7 @@ public class FerramentasFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        binding = FragmentFerramentasBinding.inflate(inflater, container, false);
+        binding = FragmentHomeBinding.inflate(inflater, container, false);
         mAuth = FirebaseAuth.getInstance();
         return binding.getRoot();
     }
@@ -55,19 +51,13 @@ public class FerramentasFragment extends Fragment {
         setupRecyclerView();
         setupCategorySpinner();
         setupSearchView();
-
-        loadMyTools();
-
-        binding.fabAddTool.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), AddToolActivity.class);
-            startActivity(intent);
-        });
+        loadTools();
     }
 
     private void setupRecyclerView() {
-        adapter = new MyToolsAdapter(getContext(), filteredToolList);
-        binding.myToolsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        binding.myToolsRecyclerView.setAdapter(adapter);
+        adapter = new ToolsAdapter(getContext(), filteredToolList);
+        binding.toolsRecyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
+        binding.toolsRecyclerView.setAdapter(adapter);
     }
 
     private void setupCategorySpinner() {
@@ -105,22 +95,28 @@ public class FerramentasFragment extends Fragment {
         });
     }
 
-    private void loadMyTools() {
-        if (mAuth.getCurrentUser() != null) {
-            String userId = mAuth.getCurrentUser().getUid();
-            db.collection("tools").whereEqualTo("ownerId", userId).get()
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            fullToolList.clear();
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                Tool tool = document.toObject(Tool.class);
-                                tool.setId(document.getId());
+    private void loadTools() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            return; // User not logged in
+        }
+        String currentUserId = currentUser.getUid();
+
+        db.collection("tools").get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        fullToolList.clear();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Tool tool = document.toObject(Tool.class);
+                            tool.setId(document.getId());
+
+                            if (tool.getOwnerId() != null && !tool.getOwnerId().equals(currentUserId)) {
                                 fullToolList.add(tool);
                             }
-                            filterTools(); // Initial filter
                         }
-                    });
-        }
+                        filterTools(); // Initial filter
+                    }
+                });
     }
 
     private void filterTools() {
