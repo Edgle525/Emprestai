@@ -2,4 +2,13 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Nova Paleta de Cores Sustentável e Contrastante -->
+    <color name="primary_green">#4CAF50</color>
+    <color name="primary_dark_green">#388E3C</color>
+    <color name="accent_orange">#FF9800</color>
+    <color name="background_light">#F1F8E9</color>
+    <color name="surface_white">#FFFFFF</color>
+    <color name="text_dark">#212121</color>
+    <color name="text_light">#FFFFFF</color>
 </resources>

@@ -18,6 +18,10 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
+import com.canhub.cropper.CropImageContract;
+import com.canhub.cropper.CropImageContractOptions;
+import com.canhub.cropper.CropImageOptions;
+import com.canhub.cropper.CropImageView;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
@@ -48,10 +52,14 @@ public class PerfilFragment extends Fragment {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     Uri imageUri = result.getData().getData();
                     if (imageUri != null) {
-                        uploadImageToStorage(imageUri);
+                        launchImageCropper(imageUri);
                     }
                 }
             });
+
+    private final ActivityResultLauncher<CropImageContractOptions> cropImageLauncher = registerForActivityResult(
+            new CropImageContract(),
+            this::onCropImageResult);
 
     @Nullable
     @Override
@@ -92,6 +100,32 @@ public class PerfilFragment extends Fragment {
     private void openGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         galleryLauncher.launch(intent);
+    }
+
+    private void launchImageCropper(Uri imageUri) {
+        CropImageOptions cropImageOptions = new CropImageOptions();
+        cropImageOptions.guidelines = CropImageView.Guidelines.ON;
+        cropImageOptions.aspectRatioX = 1;
+        cropImageOptions.aspectRatioY = 1;
+        cropImageOptions.cropShape = CropImageView.CropShape.OVAL;
+        cropImageOptions.activityTitle = "Recortar Imagem";
+        cropImageOptions.cropMenuCropButtonTitle = "Confirmar";
+        cropImageOptions.cropMenuCropButtonIcon = R.drawable.ic_check_24;
+
+        CropImageContractOptions contractOptions = new CropImageContractOptions(imageUri, cropImageOptions);
+
+        cropImageLauncher.launch(contractOptions);
+    }
+
+    private void onCropImageResult(@NonNull CropImageView.CropResult result) {
+        if (result.isSuccessful()) {
+            Uri croppedUri = result.getUriContent();
+            if (croppedUri != null) {
+                uploadImageToStorage(croppedUri);
+            }
+        } else {
+            Toast.makeText(getContext(), "Recorte cancelado", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void uploadImageToStorage(Uri imageUri) {

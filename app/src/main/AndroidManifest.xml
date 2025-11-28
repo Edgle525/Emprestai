@@ -34,6 +34,11 @@
         <activity android:name=".SearchUserActivity" />
         <activity android:name=".SearchMessageActivity" />
 
+        <!-- Crop Image Activity -->
+        <activity
+            android:name="com.canhub.cropper.CropImageActivity"
+            android:theme="@style/Theme.CropImage" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

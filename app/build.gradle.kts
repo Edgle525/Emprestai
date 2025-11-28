@@ -59,6 +59,9 @@ dependencies {
     // CircleImageView
     implementation(libs.circleimageview)
 
+    // Image Cropper
+    implementation("com.vanniktech:android-image-cropper:4.5.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
