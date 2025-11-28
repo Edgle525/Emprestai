@@ -16,18 +16,20 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.FieldPath;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import br.edu.fatecgru.empresta.databinding.FragmentConversationsBinding;
 
@@ -74,77 +76,119 @@ public class ConversationsFragment extends Fragment {
     private void loadConversations() {
         db.collection("chats")
             .whereArrayContains("participants", currentUserId)
-            .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING)
             .addSnapshotListener((snapshots, error) -> {
                 if (error != null) {
                     Log.e(TAG, "Listen failed.", error);
                     return;
                 }
 
-                if (snapshots == null) return;
-
-                List<DocumentSnapshot> validChatDocs = new ArrayList<>();
-                List<String> userIdsToFetch = new ArrayList<>();
-
-                for (DocumentSnapshot doc : snapshots.getDocuments()) {
-                    List<String> deletedFor = (List<String>) doc.get("deletedFor");
-                    if (deletedFor != null && deletedFor.contains(currentUserId)) {
-                        continue; // Skip conversations deleted by the current user
-                    }
-                    validChatDocs.add(doc);
-                    List<String> participants = (List<String>) doc.get("participants");
-                    if (participants != null) {
-                        for (String participantId : participants) {
-                            if (!participantId.equals(currentUserId) && !userIdsToFetch.contains(participantId)) {
-                                userIdsToFetch.add(participantId);
-                            }
-                        }
-                    }
-                }
-
-                if (userIdsToFetch.isEmpty()) {
+                if (snapshots == null) {
                     conversationList.clear();
                     adapter.notifyDataSetChanged();
                     return;
                 }
 
-                // Fetch user details for all conversations at once
-                db.collection("users").whereIn("uid", userIdsToFetch).get()
-                    .addOnSuccessListener(userSnapshots -> {
-                        Map<String, DocumentSnapshot> userMap = userSnapshots.getDocuments().stream()
-                                .collect(Collectors.toMap(DocumentSnapshot::getId, userDoc -> userDoc));
+                List<Conversation> tempConversations = new ArrayList<>();
+                List<String> otherUserIds = new ArrayList<>();
 
-                        List<Conversation> newConversationList = new ArrayList<>();
-                        for (DocumentSnapshot chatDoc : validChatDocs) {
-                            List<String> participants = (List<String>) chatDoc.get("participants");
-                            if (participants == null) continue;
+                for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                    Object deletedForObj = doc.get("deletedFor");
+                    Date lastMessageTimestamp = doc.getDate("lastMessageTimestamp");
 
-                            String otherUserId = participants.get(0).equals(currentUserId) ? participants.get(1) : participants.get(0);
-                            DocumentSnapshot userDoc = userMap.get(otherUserId);
-
-                            if (userDoc != null && userDoc.exists()) {
-                                Conversation conversation = new Conversation();
-                                conversation.setChatId(chatDoc.getId());
-                                conversation.setOtherUserId(otherUserId);
-                                conversation.setOtherUserName(userDoc.getString("name"));
-                                conversation.setOtherUserPhotoUrl(userDoc.getString("photoUrl"));
-                                conversation.setLastMessage(chatDoc.getString("lastMessage"));
-                                conversation.setLastMessageTimestamp(chatDoc.getDate("lastMessageTimestamp"));
-                                newConversationList.add(conversation);
+                    boolean shouldHide = false;
+                    if (deletedForObj instanceof Map) {
+                        Map<String, Object> deletedForMap = (Map<String, Object>) deletedForObj;
+                        if (deletedForMap.containsKey(currentUserId)) {
+                            Object timestampObj = deletedForMap.get(currentUserId);
+                            if (timestampObj instanceof Timestamp) {
+                                Date deletedAt = ((Timestamp) timestampObj).toDate();
+                                if (lastMessageTimestamp == null || lastMessageTimestamp.before(deletedAt)) {
+                                    shouldHide = true;
+                                }
+                            } else { 
+                                shouldHide = true;
                             }
                         }
+                    } else if (deletedForObj instanceof List) {
+                        if (((List<?>) deletedForObj).contains(currentUserId)) {
+                            shouldHide = true;
+                        }
+                    }
 
-                        // Sort by timestamp again as the order might be lost
-                        Collections.sort(newConversationList, (c1, c2) -> c2.getLastMessageTimestamp().compareTo(c1.getLastMessageTimestamp()));
+                    if (shouldHide) {
+                        continue;
+                    }
 
+                    List<String> participants = (List<String>) doc.get("participants");
+                    if (participants == null) continue;
+                    
+                    String otherUserId = "";
+                    for(String id : participants){
+                        if(!id.equals(currentUserId)){
+                            otherUserId = id;
+                            break;
+                        }
+                    }
+                    if(otherUserId.isEmpty()) continue;
+
+                    Conversation conversation = new Conversation();
+                    conversation.setChatId(doc.getId());
+                    conversation.setOtherUserId(otherUserId);
+                    conversation.setLastMessage(doc.getString("lastMessage"));
+
+                    if (lastMessageTimestamp != null) {
+                        conversation.setLastMessageTimestamp(lastMessageTimestamp);
+                    } else {
+                        conversation.setLastMessageTimestamp(new Date(0));
+                    }
+
+                    Map<String, Long> unreadCountMap = (Map<String, Long>) doc.get("unreadCount");
+                    if (unreadCountMap != null && unreadCountMap.get(currentUserId) != null) {
+                        conversation.setUnreadCount(unreadCountMap.get(currentUserId));
+                    } else {
+                        conversation.setUnreadCount(0);
+                    }
+
+                    if (!otherUserIds.contains(otherUserId)) {
+                        otherUserIds.add(otherUserId);
+                    }
+                    tempConversations.add(conversation);
+                }
+
+                if (otherUserIds.isEmpty()) {
+                    conversationList.clear();
+                    adapter.notifyDataSetChanged();
+                    return;
+                }
+
+                db.collection("users").whereIn(FieldPath.documentId(), otherUserIds)
+                    .get()
+                    .addOnSuccessListener(userSnapshots -> {
+                        Map<String, DocumentSnapshot> userMap = new HashMap<>();
+                        for (DocumentSnapshot userDoc : userSnapshots.getDocuments()) {
+                            userMap.put(userDoc.getId(), userDoc);
+                        }
+
+                        for (Conversation conv : tempConversations) {
+                            DocumentSnapshot userDoc = userMap.get(conv.getOtherUserId());
+                            if (userDoc != null) {
+                                conv.setOtherUserName(userDoc.getString("name"));
+                                conv.setOtherUserPhotoUrl(userDoc.getString("photoUrl"));
+                            }
+                        }
+                        
+                        Collections.sort(tempConversations, (c1, c2) -> c2.getLastMessageTimestamp().compareTo(c1.getLastMessageTimestamp()));
+                        
                         conversationList.clear();
-                        conversationList.addAll(newConversationList);
+                        conversationList.addAll(tempConversations);
                         adapter.notifyDataSetChanged();
                     })
-                    .addOnFailureListener(e -> Log.e(TAG, "Error fetching user details", e));
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error fetching user details", e);
+                    });
             });
     }
-
+    
     @Override
     public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         inflater.inflate(R.menu.conversations_menu, menu);
@@ -176,8 +220,11 @@ public class ConversationsFragment extends Fragment {
     }
 
     private void deleteConversation(String chatId) {
+        Map<String, Object> deleteUpdate = new HashMap<>();
+        deleteUpdate.put("deletedFor." + currentUserId, FieldValue.serverTimestamp());
+
         db.collection("chats").document(chatId)
-            .update("deletedFor", FieldValue.arrayUnion(currentUserId))
+            .update(deleteUpdate)
             .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Conversa excluída", Toast.LENGTH_SHORT).show())
             .addOnFailureListener(e -> Toast.makeText(getContext(), "Erro ao excluir conversa", Toast.LENGTH_SHORT).show());
     }

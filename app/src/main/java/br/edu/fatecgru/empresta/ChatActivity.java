@@ -11,20 +11,27 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.Transaction;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import br.edu.fatecgru.empresta.databinding.ActivityChatBinding;
@@ -36,8 +43,9 @@ public class ChatActivity extends AppCompatActivity implements ChatAdapter.OnMes
 
     private ActivityChatBinding binding;
     private ChatAdapter chatAdapter;
-    private List<ChatMessage> chatMessages;
+    private List<Object> chatItems;
     private FirebaseFirestore db;
+    private DocumentReference chatDocRef;
     private CollectionReference messagesCollection;
     private String currentUserId;
     private String otherUserId;
@@ -45,6 +53,7 @@ public class ChatActivity extends AppCompatActivity implements ChatAdapter.OnMes
     private String otherUserPhotoUrl;
     private String currentUserPhotoUrl;
     private String chatRoomId;
+    private Date conversationDeletedAt = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,13 +72,14 @@ public class ChatActivity extends AppCompatActivity implements ChatAdapter.OnMes
 
         db = FirebaseFirestore.getInstance();
 
-        loadUsersInfo();
-
         List<String> ids = new ArrayList<>(Arrays.asList(currentUserId, otherUserId));
         Collections.sort(ids);
         chatRoomId = ids.get(0) + "_" + ids.get(1);
 
-        messagesCollection = db.collection("chats").document(chatRoomId).collection("messages");
+        chatDocRef = db.collection("chats").document(chatRoomId);
+        messagesCollection = chatDocRef.collection("messages");
+
+        loadInitialData();
 
         binding.sendButton.setOnClickListener(v -> sendMessage());
         setSupportActionBar(binding.chatToolbar.toolbarChatCustom);
@@ -79,7 +89,44 @@ public class ChatActivity extends AppCompatActivity implements ChatAdapter.OnMes
         }
     }
 
-    private void loadUsersInfo() {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        resetUnreadCount();
+    }
+
+    private void resetUnreadCount() {
+        if (chatRoomId != null && currentUserId != null) {
+            chatDocRef.get().addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    chatDocRef.update("unreadCount." + currentUserId, 0);
+                }
+            });
+        }
+    }
+
+    private void loadInitialData() {
+        chatDocRef.get().addOnSuccessListener(chatDoc -> {
+            if (chatDoc.exists()) {
+                Object deletedForObj = chatDoc.get("deletedFor");
+                if (deletedForObj instanceof Map) {
+                    Map<String, Object> deletedForMap = (Map<String, Object>) deletedForObj;
+                    if (deletedForMap.containsKey(currentUserId)) {
+                        Object timestampObj = deletedForMap.get(currentUserId);
+                        if (timestampObj instanceof Timestamp) {
+                            conversationDeletedAt = ((Timestamp) timestampObj).toDate();
+                        }
+                    }
+                }
+            }
+            loadUsersInfoAndListenMessages();
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to load chat document.", e);
+            loadUsersInfoAndListenMessages();
+        });
+    }
+
+    private void loadUsersInfoAndListenMessages() {
         DocumentReference currentUserRef = db.collection("users").document(currentUserId);
         DocumentReference otherUserRef = db.collection("users").document(otherUserId);
 
@@ -106,8 +153,8 @@ public class ChatActivity extends AppCompatActivity implements ChatAdapter.OnMes
     }
 
     private void setupRecyclerView() {
-        chatMessages = new ArrayList<>();
-        chatAdapter = new ChatAdapter(this, chatMessages, otherUserName, otherUserPhotoUrl, currentUserPhotoUrl, this);
+        chatItems = new ArrayList<>();
+        chatAdapter = new ChatAdapter(this, chatItems, otherUserName, otherUserPhotoUrl, currentUserPhotoUrl, this);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         binding.chatRecyclerView.setLayoutManager(layoutManager);
@@ -115,39 +162,81 @@ public class ChatActivity extends AppCompatActivity implements ChatAdapter.OnMes
     }
 
     private void listenForMessages() {
-        messagesCollection.orderBy("timestamp", Query.Direction.ASCENDING)
-            .addSnapshotListener((snapshots, error) -> {
-                if (error != null) {
-                    Log.e(TAG, "Listen failed.", error);
-                    return;
-                }
+        Query query = messagesCollection.orderBy("timestamp", Query.Direction.ASCENDING);
+        if (conversationDeletedAt != null) {
+            query = query.whereGreaterThan("timestamp", conversationDeletedAt);
+        }
 
-                if (snapshots != null) {
-                    for (DocumentChange dc : snapshots.getDocumentChanges()) {
+        query.addSnapshotListener((snapshots, error) -> {
+            if (error != null) {
+                Log.e(TAG, "Listen failed.", error);
+                return;
+            }
+
+            if (snapshots != null) {
+                for (DocumentChange dc : snapshots.getDocumentChanges()) {
+                    if (dc.getType() == DocumentChange.Type.ADDED) {
                         ChatMessage message = dc.getDocument().toObject(ChatMessage.class);
                         message.setMessageId(dc.getDocument().getId());
-
-                        switch (dc.getType()) {
-                            case ADDED:
-                                if (!chatMessages.stream().anyMatch(m -> m.getMessageId().equals(message.getMessageId()))) {
-                                    chatMessages.add(message);
-                                    chatAdapter.notifyItemInserted(chatMessages.size() - 1);
-                                    binding.chatRecyclerView.scrollToPosition(chatMessages.size() - 1);
-                                }
-                                break;
-                            case MODIFIED:
-                                for (int i = 0; i < chatMessages.size(); i++) {
-                                    if (chatMessages.get(i).getMessageId().equals(message.getMessageId())) {
-                                        chatMessages.set(i, message);
-                                        chatAdapter.notifyItemChanged(i);
-                                        break;
-                                    }
-                                }
-                                break;
-                        }
+                        addMessageWithDate(message);
                     }
                 }
-            });
+                chatAdapter.notifyDataSetChanged();
+                binding.chatRecyclerView.scrollToPosition(chatItems.size() - 1);
+            }
+        });
+    }
+
+    private void addMessageWithDate(ChatMessage message) {
+        Date messageDate = message.getTimestamp();
+        if (messageDate == null) return;
+
+        boolean dateAdded = false;
+        if (chatItems.isEmpty()) {
+            chatItems.add(getFormattedDate(messageDate));
+            dateAdded = true;
+        } else {
+            Object lastItem = chatItems.get(chatItems.size() - 1);
+            if (lastItem instanceof ChatMessage) {
+                if (!isSameDay(((ChatMessage) lastItem).getTimestamp(), messageDate)) {
+                    chatItems.add(getFormattedDate(messageDate));
+                    dateAdded = true;
+                }
+            }
+        }
+
+        chatItems.add(message);
+    }
+
+
+    private boolean isSameDay(Date date1, Date date2) {
+        if (date1 == null || date2 == null) return false;
+        Calendar cal1 = Calendar.getInstance();
+        cal1.setTime(date1);
+        Calendar cal2 = Calendar.getInstance();
+        cal2.setTime(date2);
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
+    }
+
+    private String getFormattedDate(Date date) {
+        Calendar today = Calendar.getInstance();
+        Calendar messageCal = Calendar.getInstance();
+        messageCal.setTime(date);
+
+        if (today.get(Calendar.YEAR) == messageCal.get(Calendar.YEAR) &&
+            today.get(Calendar.DAY_OF_YEAR) == messageCal.get(Calendar.DAY_OF_YEAR)) {
+            return "Hoje";
+        }
+
+        today.add(Calendar.DAY_OF_YEAR, -1);
+        if (today.get(Calendar.YEAR) == messageCal.get(Calendar.YEAR) &&
+            today.get(Calendar.DAY_OF_YEAR) == messageCal.get(Calendar.DAY_OF_YEAR)) {
+            return "Ontem";
+        }
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        return sdf.format(date);
     }
 
     private void sendMessage() {
@@ -157,38 +246,38 @@ public class ChatActivity extends AppCompatActivity implements ChatAdapter.OnMes
         binding.messageInput.setText("");
         binding.sendButton.setEnabled(false);
 
-        // Primeiro, crie ou atualize o documento de chat
-        Map<String, Object> chatRoomData = new HashMap<>();
-        chatRoomData.put("lastMessage", messageText);
-        chatRoomData.put("lastMessageTimestamp", FieldValue.serverTimestamp());
-        chatRoomData.put("participants", Arrays.asList(currentUserId, otherUserId));
-        // Garante que o campo deletedFor exista
-        chatRoomData.put("deletedFor", Collections.emptyList());
+        db.runTransaction((Transaction.Function<Void>) transaction -> {
+            DocumentSnapshot chatDoc = transaction.get(chatDocRef);
 
-        db.collection("chats").document(chatRoomId).set(chatRoomData, SetOptions.merge())
-            .addOnSuccessListener(aVoid -> {
-                // Se a atualização do chat for bem-sucedida, envie a mensagem
-                ChatMessage chatMessage = new ChatMessage(currentUserId, messageText);
-                messagesCollection.add(chatMessage)
-                    .addOnSuccessListener(documentReference -> {
-                        // Mensagem enviada com sucesso
-                        binding.sendButton.setEnabled(true);
-                    })
-                    .addOnFailureListener(e -> {
-                        // Falha ao enviar a mensagem
-                        Log.e(TAG, "Error sending message", e);
-                        Toast.makeText(ChatActivity.this, "Falha ao enviar mensagem.", Toast.LENGTH_SHORT).show();
-                        binding.messageInput.setText(messageText); // Restaura o texto
-                        binding.sendButton.setEnabled(true);
-                    });
-            })
-            .addOnFailureListener(e -> {
-                // Falha ao criar/atualizar o documento do chat
-                Log.e(TAG, "Error updating chat document", e);
-                Toast.makeText(ChatActivity.this, "Falha ao iniciar o chat.", Toast.LENGTH_SHORT).show();
-                binding.messageInput.setText(messageText); // Restaura o texto
-                binding.sendButton.setEnabled(true);
-            });
+            if (!chatDoc.exists()) {
+                Map<String, Object> chatRoomData = new HashMap<>();
+                chatRoomData.put("participants", Arrays.asList(currentUserId, otherUserId));
+                chatRoomData.put("deletedFor", new HashMap<>());
+                Map<String, Long> unreadCount = new HashMap<>();
+                unreadCount.put(currentUserId, 0L);
+                unreadCount.put(otherUserId, 0L);
+                chatRoomData.put("unreadCount", unreadCount);
+                transaction.set(chatDocRef, chatRoomData);
+            }
+
+            transaction.update(chatDocRef, "lastMessage", messageText);
+            transaction.update(chatDocRef, "lastMessageTimestamp", FieldValue.serverTimestamp());
+            transaction.update(chatDocRef, "unreadCount." + otherUserId, FieldValue.increment(1));
+            transaction.update(chatDocRef, "unreadCount." + currentUserId, 0);
+
+            DocumentReference newMessageRef = messagesCollection.document();
+            ChatMessage chatMessage = new ChatMessage(currentUserId, messageText);
+            transaction.set(newMessageRef, chatMessage);
+
+            return null;
+        }).addOnSuccessListener(aVoid -> {
+            binding.sendButton.setEnabled(true);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Transaction failed: ", e);
+            Toast.makeText(ChatActivity.this, "Falha ao enviar mensagem.", Toast.LENGTH_SHORT).show();
+            binding.messageInput.setText(messageText);
+            binding.sendButton.setEnabled(true);
+        });
     }
 
     @Override

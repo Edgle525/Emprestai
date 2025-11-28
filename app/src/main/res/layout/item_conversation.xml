@@ -21,7 +21,7 @@
         android:layout_marginStart="16dp"
         android:textAppearance="?attr/textAppearanceListItem"
         app:layout_constraintStart_toEndOf="@id/user_photo"
-        app:layout_constraintTop_toTopOf="@id/user_photo"
+        app.layout_constraintTop_toTopOf="@id/user_photo"
         app:layout_constraintEnd_toEndOf="parent"
         tools:text="Nome do Usuário" />
 
@@ -36,7 +36,22 @@
         android:textAppearance="?attr/textAppearanceBody2"
         app:layout_constraintStart_toEndOf="@id/user_photo"
         app:layout_constraintTop_toBottomOf="@id/user_name"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/unread_count"
         tools:text="Esta foi a última mensagem trocada..." />
+
+    <TextView
+        android:id="@+id/unread_count"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:background="@drawable/ic_notification_background"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/user_name"
+        app:layout_constraintBottom_toBottomOf="@id/last_message"
+        tools:text="1"
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

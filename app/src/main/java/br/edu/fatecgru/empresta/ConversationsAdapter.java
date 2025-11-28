@@ -40,15 +40,23 @@ public class ConversationsAdapter extends RecyclerView.Adapter<ConversationsAdap
         holder.binding.userName.setText(conversation.getOtherUserName());
         holder.binding.lastMessage.setText(conversation.getLastMessage());
 
+        // Exibe o contador de mensagens não lidas
+        if (conversation.getUnreadCount() > 0) {
+            holder.binding.unreadCount.setVisibility(View.VISIBLE);
+            holder.binding.unreadCount.setText(String.valueOf(conversation.getUnreadCount()));
+        } else {
+            holder.binding.unreadCount.setVisibility(View.GONE);
+        }
+
         String photoUrl = conversation.getOtherUserPhotoUrl();
         if (photoUrl != null && !photoUrl.isEmpty()) {
             Glide.with(context)
                  .load(photoUrl)
-                 .placeholder(R.mipmap.ic_launcher_round) // Imagem de carregamento
-                 .error(R.mipmap.ic_launcher_round) // Imagem em caso de erro
+                 .placeholder(R.mipmap.ic_launcher_round)
+                 .error(R.mipmap.ic_launcher_round)
                  .into(holder.binding.userPhoto);
         } else {
-            holder.binding.userPhoto.setImageResource(R.mipmap.ic_launcher_round); // Imagem padrão
+            holder.binding.userPhoto.setImageResource(R.mipmap.ic_launcher_round);
         }
 
         holder.itemView.setOnClickListener(v -> {

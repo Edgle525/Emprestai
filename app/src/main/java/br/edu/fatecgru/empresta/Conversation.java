@@ -9,8 +9,10 @@ public class Conversation {
     private String otherUserName;
     private String otherUserPhotoUrl;
     private String lastMessage;
+    private long unreadCount; // Novo campo para mensagens não lidas
     @ServerTimestamp
     private Date lastMessageTimestamp;
+    private Date deletedAt;
 
     public Conversation() {}
 
@@ -32,4 +34,10 @@ public class Conversation {
 
     public Date getLastMessageTimestamp() { return lastMessageTimestamp; }
     public void setLastMessageTimestamp(Date lastMessageTimestamp) { this.lastMessageTimestamp = lastMessageTimestamp; }
+
+    public long getUnreadCount() { return unreadCount; }
+    public void setUnreadCount(long unreadCount) { this.unreadCount = unreadCount; }
+
+    public Date getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(Date deletedAt) { this.deletedAt = deletedAt; }
 }
