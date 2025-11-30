@@ -5,7 +5,9 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -16,7 +18,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.Map;
 
@@ -92,7 +93,10 @@ public class MainActivity extends AppCompatActivity {
                     for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots.getDocuments()) {
                         Map<String, Long> unreadCountMap = (Map<String, Long>) doc.get("unreadCount");
                         if (unreadCountMap != null && unreadCountMap.containsKey(userId)) {
-                            totalUnreadCount += unreadCountMap.get(userId);
+                            Long count = unreadCountMap.get(userId);
+                            if(count != null) {
+                                totalUnreadCount += count;
+                            }
                         }
                     }
                     updateBottomNavBadge(totalUnreadCount);

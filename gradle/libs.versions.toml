@@ -12,7 +12,11 @@ firebase-bom = "33.1.2"
 google-services = "4.4.2"
 glide = "4.16.0"
 play-services-auth = "21.2.0"
+play-services-location = "21.2.0"
 circleimageview = "3.1.0"
+retrofit = "2.9.0"
+geofirestore = "v2.0.0"
+image-cropper = "4.5.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -30,7 +34,12 @@ firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage"}
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "play-services-auth" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "play-services-location" }
 circleimageview = { group = "de.hdodenhof", name = "circleimageview", version.ref = "circleimageview" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+geofirestore = { group = "com.github.imperiumlabs", name = "GeoFirestore-Android", version.ref = "geofirestore" }
+image-cropper = { group = "com.vanniktech", name = "android-image-cropper", version.ref = "image-cropper" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,5 +1,7 @@
 package br.edu.fatecgru.empresta;
 
+import com.google.firebase.firestore.GeoPoint;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -12,6 +14,8 @@ public class Tool implements Serializable {
     private List<String> imageUrls;
     private String ownerId;
     private boolean available;
+    private String geohash;
+    private GeoPoint location;
 
     // Firestore precisa de um construtor vazio
     public Tool() {}
@@ -40,4 +44,10 @@ public class Tool implements Serializable {
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
+
+    public String getGeohash() { return geohash; }
+    public void setGeohash(String geohash) { this.geohash = geohash; }
+
+    public GeoPoint getLocation() { return location; }
+    public void setLocation(GeoPoint location) { this.location = location; }
 }

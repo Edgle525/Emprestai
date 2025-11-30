@@ -50,6 +50,15 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.play.services.auth)
 
+    // Geolocation
+    implementation("com.firebase:geofire-android-common:3.2.0")
+    implementation(libs.play.services.location)
+
+
+    // Retrofit for CEP lookup
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+
     // Image Loading
     implementation(libs.glide)
 
@@ -60,7 +69,7 @@ dependencies {
     implementation(libs.circleimageview)
 
     // Image Cropper
-    implementation("com.vanniktech:android-image-cropper:4.5.0")
+    implementation(libs.image.cropper)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
