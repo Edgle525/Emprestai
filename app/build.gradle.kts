@@ -52,7 +52,7 @@ dependencies {
 
     // Geolocation
     implementation("com.firebase:geofire-android-common:3.2.0")
-    implementation(libs.play.services.location)
+    implementation(libs.location)
 
 
     // Retrofit for CEP lookup

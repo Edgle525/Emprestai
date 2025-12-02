@@ -24,10 +24,13 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import br.edu.fatecgru.empresta.databinding.FragmentHomeBinding;
 
@@ -155,20 +158,48 @@ public class HomeFragment extends Fragment {
         String currentUserId = currentUser.getUid();
 
         db.collection("tools").get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        fullToolList.clear();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Tool tool = document.toObject(Tool.class);
-                            tool.setId(document.getId());
+            .addOnSuccessListener(toolsSnapshot -> {
+                fullToolList.clear();
+                List<String> toolIds = new ArrayList<>();
+                Map<String, Tool> toolsById = new HashMap<>();
+                for (QueryDocumentSnapshot document : toolsSnapshot) {
+                    Tool tool = document.toObject(Tool.class);
+                    tool.setId(document.getId());
+                    if (tool.getOwnerId() != null && !tool.getOwnerId().equals(currentUserId)) {
+                        toolIds.add(tool.getId());
+                        toolsById.put(tool.getId(), tool);
+                    }
+                }
 
-                            if (tool.getOwnerId() != null && !tool.getOwnerId().equals(currentUserId)) {
-                                fullToolList.add(tool);
+                if (toolIds.isEmpty()) {
+                    filterTools(); // No tools to check
+                    return;
+                }
+
+                // Check for active loans
+                db.collection("loans")
+                    .whereIn("toolId", toolIds)
+                    .whereIn("status", Arrays.asList(Loan.Status.ACTIVE.name(), Loan.Status.ACCEPTED.name()))
+                    .get()
+                    .addOnSuccessListener(loansSnapshot -> {
+                        List<String> unavailableToolIds = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : loansSnapshot) {
+                            unavailableToolIds.add(document.getString("toolId"));
+                        }
+
+                        for (Map.Entry<String, Tool> entry : toolsById.entrySet()) {
+                            if (!unavailableToolIds.contains(entry.getKey())) {
+                                fullToolList.add(entry.getValue());
                             }
                         }
-                        filterTools(); // Initial filter
-                    }
-                });
+                        filterTools();
+                    })
+                    .addOnFailureListener(e -> {
+                        // If loan check fails, show all tools as a fallback
+                        fullToolList.addAll(toolsById.values());
+                        filterTools();
+                    });
+            });
     }
 
     private void filterTools() {
@@ -208,6 +239,9 @@ public class HomeFragment extends Fragment {
         fusedLocationClient.getLastLocation().addOnSuccessListener(requireActivity(), location -> {
             if (location != null) {
                 lastLocation = location;
+                loadTools();
+            } else {
+                // If location is null, load tools without distance filtering
                 loadTools();
             }
         });

@@ -4,6 +4,8 @@ public class User {
     private String uid;
     private String name;
     private String photoUrl;
+    private Double rating;
+    private String address;
 
     public User() {}
 
@@ -22,4 +24,10 @@ public class User {
 
     public String getPhotoUrl() { return photoUrl; }
     public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+
+    public Double getRating() { return rating; }
+    public void setRating(Double rating) { this.rating = rating; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
 }

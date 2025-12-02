@@ -34,7 +34,7 @@ firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage"}
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "play-services-auth" }
-play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "play-services-location" }
+location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "play-services-location" }
 circleimageview = { group = "de.hdodenhof", name = "circleimageview", version.ref = "circleimageview" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }

@@ -38,7 +38,19 @@ public class LoanRequestsAdapter extends RecyclerView.Adapter<LoanRequestsAdapte
     public void onBindViewHolder(@NonNull LoanRequestViewHolder holder, int position) {
         Loan loan = loanRequests.get(position);
 
-        holder.binding.borrowingTimeRequest.setText("Período: " + loan.getBorrowingTime());
+        int days = loan.getLoanDurationDays();
+        int hours = loan.getLoanDurationHours();
+        StringBuilder durationBuilder = new StringBuilder();
+        if (days > 0) {
+            durationBuilder.append(days).append(days > 1 ? " dias" : " dia");
+        }
+        if (hours > 0) {
+            if (days > 0) {
+                durationBuilder.append(" e ");
+            }
+            durationBuilder.append(hours).append(hours > 1 ? " horas" : " hora");
+        }
+        holder.binding.borrowingTimeRequest.setText("Período: " + durationBuilder.toString());
 
         // Carregar dados do solicitante
         db.collection("users").document(loan.getBorrowerId()).get().addOnSuccessListener(userDoc -> {
@@ -67,14 +79,15 @@ public class LoanRequestsAdapter extends RecyclerView.Adapter<LoanRequestsAdapte
         });
 
         // Ações dos botões
-        holder.binding.approveRequestButton.setOnClickListener(v -> updateLoanStatus(loan, "Aprovado", position));
-        holder.binding.denyRequestButton.setOnClickListener(v -> updateLoanStatus(loan, "Recusado", position));
+        holder.binding.approveRequestButton.setOnClickListener(v -> updateLoanStatus(loan, Loan.Status.ACCEPTED, position));
+        holder.binding.denyRequestButton.setOnClickListener(v -> updateLoanStatus(loan, Loan.Status.REJECTED, position));
     }
 
-    private void updateLoanStatus(Loan loan, String newStatus, int position) {
+    private void updateLoanStatus(Loan loan, Loan.Status newStatus, int position) {
         db.collection("loans").document(loan.getId()).update("status", newStatus)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(context, "Solicitação " + newStatus.toLowerCase(), Toast.LENGTH_SHORT).show();
+                    String statusMessage = newStatus == Loan.Status.ACCEPTED ? "aprovada" : "recusada";
+                    Toast.makeText(context, "Solicitação " + statusMessage, Toast.LENGTH_SHORT).show();
                     loanRequests.remove(position);
                     notifyItemRemoved(position);
                     notifyItemRangeChanged(position, loanRequests.size());
