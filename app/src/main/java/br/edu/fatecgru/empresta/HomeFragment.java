@@ -1,10 +1,14 @@
 package br.edu.fatecgru.empresta;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -24,7 +28,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,6 +54,12 @@ public class HomeFragment extends Fragment {
     private FusedLocationProviderClient fusedLocationClient;
     private Location lastLocation;
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -69,6 +78,33 @@ public class HomeFragment extends Fragment {
         setupDistanceSpinner();
         setupSearchView();
         checkLocationPermission();
+    }
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        inflater.inflate(R.menu.home_menu, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_info) {
+            showInfoDialog();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showInfoDialog() {
+        new AlertDialog.Builder(getContext())
+                .setTitle("Nossa Missão")
+                .setMessage("Nossa missão é promover a sustentabilidade e o consumo consciente, em linha com os Objetivos de Desenvolvimento Sustentável (ODS) da ONU.\n\n" +
+                        "ODS 12 (Consumo e Produção Responsáveis): Ao incentivar o empréstimo de ferramentas, reduzimos o consumo, a extração de recursos e a geração de lixo.\n\n" +
+                        "ODS 1 & 10 (Erradicação da Pobreza e Redução das Desigualdades): Facilitamos o acesso a ferramentas para quem não pode comprar, promovendo inclusão e igualdade.\n\n" +
+                        "ODS 11 (Cidades e Comunidades Sustentáveis): Fortalecemos a comunidade local, criando uma rede de colaboração e confiança entre vizinhos.\n\n" +
+                        "Junte-se a nós para construir um futuro mais sustentável!")
+                .setPositiveButton("Entendi", null)
+                .show();
     }
 
     private void setupRecyclerView() {

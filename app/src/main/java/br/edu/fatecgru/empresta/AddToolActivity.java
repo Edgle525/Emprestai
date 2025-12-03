@@ -9,6 +9,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
@@ -26,6 +27,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -52,6 +54,7 @@ public class AddToolActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private StorageReference storageRef;
+    private User currentUserProfile;
 
     private final ArrayList<String> imageUrls = new ArrayList<>();
     private final ArrayList<Uri> newImageUris = new ArrayList<>();
@@ -117,17 +120,61 @@ public class AddToolActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         storageRef = FirebaseStorage.getInstance().getReference();
 
+        checkUserProfile();
         setupRecyclerView();
-
-        if (getIntent().hasExtra("EDIT_TOOL_ID")) {
-            editingToolId = getIntent().getStringExtra("EDIT_TOOL_ID");
-            loadToolData(editingToolId);
-            setTitle("Editar Ferramenta");
-        }
 
         binding.toolCategorySelector.setOnClickListener(v -> showCategorySelectionDialog());
         binding.addImageButton.setOnClickListener(v -> showImageSourceDialog());
         binding.saveToolButton.setOnClickListener(v -> saveTool());
+        binding.completeProfileButtonAddTool.setOnClickListener(v -> {
+            startActivity(new Intent(this, EditProfileActivity.class));
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkUserProfile();
+    }
+
+    private void checkUserProfile() {
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user == null) return;
+
+        db.collection("users").document(user.getUid()).get()
+            .addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    currentUserProfile = documentSnapshot.toObject(User.class);
+                    if (isProfileComplete()) {
+                        binding.addToolFormScroll.setVisibility(View.VISIBLE);
+                        binding.incompleteProfileWarningAddTool.setVisibility(View.GONE);
+                        initializeForm();
+                    } else {
+                        binding.addToolFormScroll.setVisibility(View.GONE);
+                        binding.incompleteProfileWarningAddTool.setVisibility(View.VISIBLE);
+                    }
+                } else {
+                    binding.addToolFormScroll.setVisibility(View.GONE);
+                    binding.incompleteProfileWarningAddTool.setVisibility(View.VISIBLE);
+                }
+            });
+    }
+
+    private boolean isProfileComplete() {
+        return currentUserProfile != null &&
+               !TextUtils.isEmpty(currentUserProfile.getCep()) &&
+               !TextUtils.isEmpty(currentUserProfile.getStreet()) &&
+               !TextUtils.isEmpty(currentUserProfile.getNumber());
+    }
+
+    private void initializeForm() {
+        if (getIntent().hasExtra("EDIT_TOOL_ID")) {
+            editingToolId = getIntent().getStringExtra("EDIT_TOOL_ID");
+            if (binding.toolName.getText().toString().isEmpty()) { // Load only if not already loaded
+                loadToolData(editingToolId);
+            }
+            setTitle("Editar Ferramenta");
+        }
     }
 
     private byte[] compressImage(Uri uri) throws IOException {
@@ -159,16 +206,16 @@ public class AddToolActivity extends AppCompatActivity {
                         binding.toolDescription.setText(tool.getDescription());
 
                         if (tool.getCategories() != null) {
+                            selectedCategoriesList.clear();
                             selectedCategoriesList.addAll(tool.getCategories());
                         }
                         binding.toolCategorySelector.setText(TextUtils.join(", ", selectedCategoriesList));
                         for (int i = 0; i < categories.length; i++) {
-                            if (selectedCategoriesList.contains(categories[i])) {
-                                selectedCategories[i] = true;
-                            }
+                            selectedCategories[i] = selectedCategoriesList.contains(categories[i]);
                         }
 
                         if (tool.getImageUrls() != null) {
+                            imageUrls.clear();
                             imageUrls.addAll(tool.getImageUrls());
                         }
                         updateImageAdapter();

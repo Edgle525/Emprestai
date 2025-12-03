@@ -1,70 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".AddToolActivity">
 
+    <ScrollView
+        android:id="@+id/add_tool_form_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/tool_images_recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:orientation="horizontal"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+            <Button
+                android:id="@+id/add_image_button"
+                style="?attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Adicionar Fotos (até 5)" />
+
+            <EditText
+                android:id="@+id/tool_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="Nome da Ferramenta" />
+
+            <EditText
+                android:id="@+id/tool_brand"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Marca" />
+
+            <TextView
+                android:id="@+id/tool_category_selector"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@android:drawable/btn_dropdown"
+                android:padding="12dp"
+                android:text="Selecione as Categorias" />
+
+            <EditText
+                android:id="@+id/tool_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="Descrição"
+                android:inputType="textMultiLine"
+                android:minLines="3" />
+
+            <Button
+                android:id="@+id/save_tool_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Salvar Ferramenta" />
+
+        </LinearLayout>
+    </ScrollView>
+
     <LinearLayout
+        android:id="@+id/incomplete_profile_warning_add_tool"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:visibility="gone"
+        tools:visibility="visible">
 
-        <!-- RecyclerView para as fotos da ferramenta -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/tool_images_recycler_view"
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:orientation="horizontal"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Seu perfil está incompleto!"
+            android:textAlignment="center"
+            android:textColor="@android:color/holo_red_dark"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Para anunciar uma ferramenta, por favor, complete seu cadastro com um endereço válido."
+            android:textAlignment="center" />
 
         <Button
-            android:id="@+id/add_image_button"
+            android:id="@+id/complete_profile_button_add_tool"
             style="?attr/borderlessButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Adicionar Fotos (até 5)" />
-
-        <EditText
-            android:id="@+id/tool_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="Nome da Ferramenta" />
-
-        <EditText
-            android:id="@+id/tool_brand"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="Marca" />
-
-        <TextView
-            android:id="@+id/tool_category_selector"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@android:drawable/btn_dropdown"
-            android:padding="12dp"
-            android:text="Selecione as Categorias" />
-
-        <EditText
-            android:id="@+id/tool_description"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="Descrição"
-            android:inputType="textMultiLine"
-            android:minLines="3" />
-
-        <Button
-            android:id="@+id/save_tool_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Salvar Ferramenta" />
+            android:text="Completar Cadastro" />
 
     </LinearLayout>
-</ScrollView>
+
+</RelativeLayout>

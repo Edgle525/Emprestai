@@ -1,10 +1,11 @@
 package br.edu.fatecgru.empresta;
 
 import android.app.AlertDialog;
-import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,15 +13,22 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.util.Pair;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.datepicker.CalendarConstraints;
+import com.google.android.material.datepicker.CompositeDateValidator;
+import com.google.android.material.datepicker.DateValidatorPointForward;
+import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
-import java.util.Calendar;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -35,6 +43,7 @@ public class ToolDetailActivity extends BaseActivity {
     private Tool currentTool;
     private User owner;
     private User borrower;
+    private final List<Pair<Long, Long>> unavailableRanges = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,40 +55,130 @@ public class ToolDetailActivity extends BaseActivity {
         mAuth = FirebaseAuth.getInstance();
         toolId = getIntent().getStringExtra("TOOL_ID");
 
-        binding.borrowButton.setVisibility(View.GONE); // Ocultar por padrão
+        binding.borrowButton.setVisibility(View.GONE);
 
         if (toolId != null) {
-            loadToolDetails();
+            loadToolAndLoanDetails();
         }
 
         binding.borrowButton.setOnClickListener(v -> {
-            if (borrower == null || TextUtils.isEmpty(borrower.getAddress())) {
+            if (borrower == null || TextUtils.isEmpty(borrower.getCep()) || TextUtils.isEmpty(borrower.getStreet()) || TextUtils.isEmpty(borrower.getNumber())) {
                 showProfileCompletionDialog();
             } else if (currentTool != null && owner != null) {
-                showPickupDatePicker();
+                showDateRangePicker();
             } else {
                 Toast.makeText(this, "Carregando dados... Tente novamente.", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void loadToolDetails() {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Recarrega os dados do usuário para garantir que o perfil completo seja reconhecido
+        if (mAuth.getCurrentUser() != null && toolId != null && currentTool != null) {
+            loadOwnerAndBorrowerDetails(currentTool.getOwnerId());
+            loadUnavailableDates();
+        }
+    }
+
+    private void loadToolAndLoanDetails() {
         db.collection("tools").document(toolId).get()
-            .addOnSuccessListener(documentSnapshot -> {
-                if (documentSnapshot.exists()) {
-                    currentTool = documentSnapshot.toObject(Tool.class);
-                    if (currentTool != null) {
-                        currentTool.setId(documentSnapshot.getId());
-                        updateUIWithToolDetails();
-                        if (currentTool.getOwnerId() != null) {
-                            loadOwnerAndBorrowerDetails(currentTool.getOwnerId());
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        currentTool = documentSnapshot.toObject(Tool.class);
+                        if (currentTool != null) {
+                            currentTool.setId(documentSnapshot.getId());
+                            updateUIWithToolDetails();
+                            if (currentTool.getOwnerId() != null) {
+                                loadOwnerAndBorrowerDetails(currentTool.getOwnerId());
+                            }
+                            loadUnavailableDates();
+                        }
+                    } else {
+                        Toast.makeText(this, "Ferramenta não encontrada.", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                });
+    }
+
+    private void loadUnavailableDates() {
+        db.collection("loans")
+                .whereEqualTo("toolId", toolId)
+                .whereIn("status", Arrays.asList(Loan.Status.ACCEPTED.name(), Loan.Status.ACTIVE.name()))
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    unavailableRanges.clear();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Loan loan = doc.toObject(Loan.class);
+                        if (loan.getPickupDate() != null && loan.getExpectedReturnDate() != null) {
+                            unavailableRanges.add(new Pair<>(loan.getPickupDate().getTime(), loan.getExpectedReturnDate().getTime()));
                         }
                     }
-                } else {
-                    Toast.makeText(this, "Ferramenta não encontrada.", Toast.LENGTH_SHORT).show();
-                    finish();
-                }
-            });
+                });
+    }
+
+    private void showDateRangePicker() {
+        MaterialDatePicker.Builder<Pair<Long, Long>> builder = MaterialDatePicker.Builder.dateRangePicker();
+        builder.setTitleText("Selecione o período do empréstimo");
+
+        CalendarConstraints.Builder constraintsBuilder = new CalendarConstraints.Builder();
+
+        ArrayList<CalendarConstraints.DateValidator> validators = new ArrayList<>();
+        validators.add(DateValidatorPointForward.now());
+
+        for (Pair<Long, Long> range : unavailableRanges) {
+            validators.add(new DateValidatorUnavailable(range.first, range.second));
+        }
+        constraintsBuilder.setValidator(CompositeDateValidator.allOf(validators));
+
+        builder.setCalendarConstraints(constraintsBuilder.build());
+
+        MaterialDatePicker<Pair<Long, Long>> picker = builder.build();
+        picker.show(getSupportFragmentManager(), picker.toString());
+
+        picker.addOnPositiveButtonClickListener(selection -> {
+            if (selection.first != null && selection.second != null) {
+                createLoanRequest(new Date(selection.first), new Date(selection.second));
+            }
+        });
+    }
+
+    private static class DateValidatorUnavailable implements CalendarConstraints.DateValidator {
+        private final long start;
+        private final long end;
+
+        DateValidatorUnavailable(long start, long end) {
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public boolean isValid(long date) {
+            return !(date >= start && date <= end);
+        }
+
+        public static final Parcelable.Creator<DateValidatorUnavailable> CREATOR = new Parcelable.Creator<DateValidatorUnavailable>() {
+            @Override
+            public DateValidatorUnavailable createFromParcel(Parcel source) {
+                return new DateValidatorUnavailable(source.readLong(), source.readLong());
+            }
+            @Override
+            public DateValidatorUnavailable[] newArray(int size) {
+                return new DateValidatorUnavailable[size];
+            }
+        };
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(@NonNull Parcel dest, int flags) {
+            dest.writeLong(start);
+            dest.writeLong(end);
+        }
     }
 
     private void updateUIWithToolDetails() {
@@ -101,7 +200,6 @@ public class ToolDetailActivity extends BaseActivity {
 
         if (ownerId.equals(currentUser.getUid())) {
             binding.borrowButton.setVisibility(View.GONE);
-            return;
         }
 
         db.collection("users").document(ownerId).get()
@@ -112,16 +210,18 @@ public class ToolDetailActivity extends BaseActivity {
                         owner.setUid(documentSnapshot.getId());
                         updateUIWithOwnerDetails();
 
-                        db.collection("users").document(currentUser.getUid()).get()
-                            .addOnSuccessListener(borrowerSnapshot -> {
-                                if (borrowerSnapshot.exists()) {
-                                    borrower = borrowerSnapshot.toObject(User.class);
-                                    if (borrower != null) {
-                                        borrower.setUid(borrowerSnapshot.getId());
-                                        binding.borrowButton.setVisibility(View.VISIBLE);
+                        if (!ownerId.equals(currentUser.getUid())) {
+                            db.collection("users").document(currentUser.getUid()).get()
+                                .addOnSuccessListener(borrowerSnapshot -> {
+                                    if (borrowerSnapshot.exists()) {
+                                        borrower = borrowerSnapshot.toObject(User.class);
+                                        if (borrower != null) {
+                                            borrower.setUid(borrowerSnapshot.getId());
+                                            binding.borrowButton.setVisibility(View.VISIBLE);
+                                        }
                                     }
-                                }
-                            });
+                                });
+                        }
                     }
                 }
             });
@@ -139,43 +239,14 @@ public class ToolDetailActivity extends BaseActivity {
             binding.ownerPhotoDetail.setImageResource(R.mipmap.ic_launcher_round);
         }
 
+        binding.ownerPhoneDetail.setText("Telefone: " + owner.getPhone());
+        binding.ownerLocationDetail.setText(String.format("Localização: %s, %s - %s", owner.getCity(), owner.getState(), owner.getNeighborhood()));
+
         binding.chatButtonDetail.setOnClickListener(v -> {
             Intent intent = new Intent(this, ChatActivity.class);
             intent.putExtra(ChatActivity.EXTRA_OTHER_USER_ID, owner.getUid());
             startActivity(intent);
         });
-    }
-
-    private void showPickupDatePicker() {
-        final Calendar c = Calendar.getInstance();
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this,
-                (view, year, monthOfYear, dayOfMonth) -> {
-                    Calendar pickupDate = Calendar.getInstance();
-                    pickupDate.set(year, monthOfYear, dayOfMonth, 0, 0, 0);
-                    pickupDate.set(Calendar.MILLISECOND, 0);
-
-                    showReturnDatePicker(pickupDate.getTime());
-                }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH));
-        datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
-        datePickerDialog.setTitle("Selecione a data de retirada");
-        datePickerDialog.show();
-    }
-
-    private void showReturnDatePicker(final Date pickupDate) {
-        final Calendar c = Calendar.getInstance();
-        c.setTime(pickupDate);
-
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this,
-                (view, year, monthOfYear, dayOfMonth) -> {
-                    Calendar returnDate = Calendar.getInstance();
-                    returnDate.set(year, monthOfYear, dayOfMonth, 23, 59, 59);
-                    returnDate.set(Calendar.MILLISECOND, 999);
-
-                    createLoanRequest(pickupDate, returnDate.getTime());
-                }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH));
-        datePickerDialog.getDatePicker().setMinDate(pickupDate.getTime());
-        datePickerDialog.setTitle("Selecione a data de devolução");
-        datePickerDialog.show();
     }
 
     private void createLoanRequest(Date pickupDate, Date expectedReturnDate) {

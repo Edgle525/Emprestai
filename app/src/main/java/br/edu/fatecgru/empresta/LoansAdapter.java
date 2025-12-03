@@ -92,6 +92,7 @@ public class LoansAdapter extends RecyclerView.Adapter<LoansAdapter.LoanViewHold
         db.collection("users").document(otherUserId).get().addOnSuccessListener(userDoc -> {
             if (userDoc.exists()) {
                 holder.binding.loanUserInfo.setText(userInfoPrefix + userDoc.getString("name"));
+                holder.binding.loanUserPhone.setText(userDoc.getString("phone"));
             }
         });
 
@@ -279,8 +280,8 @@ public class LoansAdapter extends RecyclerView.Adapter<LoansAdapter.LoanViewHold
                             continue;
                         }
 
-                        // Check for overlap: (StartA <= EndB) and (EndA >= StartB)
-                        if (!acceptedStart.after(requestedEnd) && !acceptedEnd.before(requestedStart)) {
+                        // Check for overlap: (StartA < EndB) and (EndA > StartB)
+                        if (acceptedStart.before(requestedEnd) && acceptedEnd.after(requestedStart)) {
                             db.collection("loans").document(requestedLoan.getId()).update("status", REJECTED.name());
                             
                             int conflictPosition = -1;

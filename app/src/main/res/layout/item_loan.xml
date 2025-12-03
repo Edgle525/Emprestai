@@ -39,8 +39,18 @@
             android:layout_marginStart="8dp"
             app:layout_constraintTop_toBottomOf="@+id/loan_tool_name"
             app:layout_constraintStart_toEndOf="@+id/loan_tool_image"
-            app.layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             tools:text="Emprestado para/de: Usuário"/>
+
+        <TextView
+            android:id="@+id/loan_user_phone"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            app:layout_constraintTop_toBottomOf="@+id/loan_user_info"
+            app:layout_constraintStart_toEndOf="@+id/loan_tool_image"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:text="Telefone: (11) 99999-9999"/>
 
         <TextView
             android:id="@+id/loan_status"
@@ -49,7 +59,7 @@
             android:layout_marginTop="8dp"
             android:textAppearance="?attr/textAppearanceBody2"
             android:textStyle="bold"
-            app:layout_constraintTop_toBottomOf="@+id/loan_tool_image"
+            app:layout_constraintTop_toBottomOf="@+id/loan_user_phone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             tools:text="Status: Aguardando Aprovação" />
@@ -60,7 +70,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="8dp"
-            app:layout_constraintTop_toBottomOf="@+id/loan_status" 
+            app:layout_constraintTop_toBottomOf="@+id/loan_status"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
@@ -97,7 +107,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Devolver"
-                android.visibility="gone" />
+                android:visibility="gone" />
 
         </LinearLayout>
 

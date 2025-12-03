@@ -3,6 +3,7 @@ package br.edu.fatecgru.empresta;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -64,13 +65,13 @@ public class ConversationsFragment extends Fragment {
             setupRecyclerView();
             loadConversations();
         }
-        registerForContextMenu(binding.conversationsRecyclerView);
     }
 
     private void setupRecyclerView() {
         adapter = new ConversationsAdapter(getContext(), conversationList);
         binding.conversationsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.conversationsRecyclerView.setAdapter(adapter);
+        registerForContextMenu(binding.conversationsRecyclerView);
     }
 
     private void loadConversations() {
@@ -108,10 +109,6 @@ public class ConversationsFragment extends Fragment {
                             } else { 
                                 shouldHide = true;
                             }
-                        }
-                    } else if (deletedForObj instanceof List) {
-                        if (((List<?>) deletedForObj).contains(currentUserId)) {
-                            shouldHide = true;
                         }
                     }
 
@@ -209,7 +206,7 @@ public class ConversationsFragment extends Fragment {
         if (item.getItemId() == R.id.delete_conversation) {
             int position = item.getGroupId();
             if (position >= 0 && position < conversationList.size()) {
-                Conversation conversation = adapter.getConversation(position);
+                Conversation conversation = conversationList.get(position);
                 if (conversation != null) {
                     deleteConversation(conversation.getChatId());
                 }
